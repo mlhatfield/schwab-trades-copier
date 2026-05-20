@@ -10,6 +10,13 @@ from src.differ import build_trade_list
 from src.trader import calculate_dest_trades, execute_trades
 from src.schwab_client import build_client, get_positions, get_transactions, get_prices
 
+_REDIRECT_URI = "https://127.0.0.1"
+
+
+def _snapshot_path(cfg: dict) -> str:
+    token_dir = os.path.dirname(cfg["schwab"]["token_file"]) or "."
+    return os.path.join(token_dir, "snapshot.json")
+
 
 def setup_logging(log_dir: str) -> None:
     os.makedirs(log_dir, exist_ok=True)
@@ -26,26 +33,27 @@ def setup_logging(log_dir: str) -> None:
 
 def first_run_setup(cfg: dict) -> None:
     import schwab
-    os.makedirs(os.path.dirname(cfg["schwab"]["token_file"]), exist_ok=True)
+    log = logging.getLogger(__name__)
+    os.makedirs(os.path.dirname(cfg["schwab"]["token_file"]) or ".", exist_ok=True)
     schwab.auth.client_from_login_flow(
         cfg["schwab"]["client_id"],
         cfg["schwab"]["client_secret"],
-        "https://127.0.0.1",
+        _REDIRECT_URI,
         cfg["schwab"]["token_file"],
     )
-    print("Auth complete. Taking initial snapshot...")
+    log.info("Auth complete. Taking initial snapshot...")
     client = build_client(cfg)
     positions = get_positions(client, cfg["accounts"]["source"])
-    snapshot_path = os.path.join(os.path.dirname(cfg["schwab"]["token_file"]), "snapshot.json")
-    save_snapshot(positions, snapshot_path)
-    print(f"Snapshot saved to {snapshot_path}. Run without --setup tomorrow to start copying.")
+    path = _snapshot_path(cfg)
+    save_snapshot(positions, path)
+    log.info(f"Snapshot saved to {path}. Run without --setup tomorrow to start copying.")
 
 
 def run(cfg: dict) -> None:
     log = logging.getLogger(__name__)
     client = build_client(cfg)
 
-    snapshot_path = os.path.join(os.path.dirname(cfg["schwab"]["token_file"]), "snapshot.json")
+    snapshot_path = _snapshot_path(cfg)
     yesterday = load_snapshot(snapshot_path)
 
     source_id = cfg["accounts"]["source"]
@@ -70,6 +78,8 @@ def run(cfg: dict) -> None:
     log.info(f"Fetching dest positions (account {dest_id})")
     dest_positions = get_positions(client, dest_id)
     dest_value = sum(p["market_value"] for p in dest_positions.values())
+    if dest_value == 0.0:
+        log.warning("Dest account has zero market value — no BUY orders will be sized")
 
     symbols = list({t["symbol"] for t in trades})
     prices = get_prices(client, symbols)
