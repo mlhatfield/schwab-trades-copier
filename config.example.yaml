@@ -1,0 +1,17 @@
+schwab:
+  client_id: "YOUR_APP_KEY"
+  client_secret: "YOUR_APP_SECRET"
+  token_file: "~/.schwab-trader/tokens.json"
+
+accounts:
+  source: "12345678"
+  dest:   "87654321"
+
+execution:
+  dry_run: true
+  min_trade_value: 50
+  allocation_tolerance: 0.01
+  order_type: "MARKET"
+
+schedule:
+  time: "09:45"
