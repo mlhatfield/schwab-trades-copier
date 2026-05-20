@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.schwabtrader</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/mihatfield/code/schwab-trader/.venv/bin/python</string>
+        <string>/Users/mihatfield/code/schwab-trader/main.py</string>
+        <string>--config</string>
+        <string>/Users/mihatfield/code/schwab-trader/config.yaml</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>9</integer>
+        <key>Minute</key>
+        <integer>45</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>/Users/mihatfield/.schwab-trader/logs/launchd.out</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/mihatfield/.schwab-trader/logs/launchd.err</string>
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>
