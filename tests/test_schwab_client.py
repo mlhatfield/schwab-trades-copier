@@ -1,6 +1,6 @@
 # tests/test_schwab_client.py
 from unittest.mock import MagicMock, patch
-from src.schwab_client import get_positions, get_transactions, normalize_positions
+from src.schwab_client import normalize_positions
 
 def test_normalize_positions_extracts_pct():
     raw = {

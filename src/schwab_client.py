@@ -51,6 +51,8 @@ def get_transactions(client, account_number: str, days: int = 2) -> list[dict]:
             if inst.get("assetType") != "EQUITY":
                 continue
             amount = item.get("amount", 0)
+            if amount == 0:
+                continue
             trades.append({
                 "symbol": inst["symbol"],
                 "action": "BUY" if amount > 0 else "SELL",
@@ -64,4 +66,12 @@ def get_prices(client, symbols: list[str]) -> dict[str, float]:
     resp = client.get_quotes(symbols)
     resp.raise_for_status()
     data = resp.json()
-    return {sym: data[sym]["quote"]["lastPrice"] for sym in symbols if sym in data}
+    result = {}
+    for sym in symbols:
+        if sym not in data:
+            continue
+        try:
+            result[sym] = data[sym]["quote"]["lastPrice"]
+        except KeyError:
+            pass
+    return result
