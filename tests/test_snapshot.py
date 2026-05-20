@@ -17,3 +17,9 @@ def test_roundtrip(tmp_path):
 def test_load_missing_returns_empty(tmp_path):
     path = str(tmp_path / "nonexistent.json")
     assert load_snapshot(path) == {}
+
+def test_save_creates_parent_dirs(tmp_path):
+    path = str(tmp_path / "subdir" / "nested" / "snapshot.json")
+    save_snapshot(POSITIONS, path)
+    loaded = load_snapshot(path)
+    assert loaded == POSITIONS
