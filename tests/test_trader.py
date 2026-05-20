@@ -40,3 +40,9 @@ def test_dry_run_does_not_call_api():
     orders = [{"symbol": "AAPL", "action": "BUY", "shares": 2.0}]
     execute_trades(orders, dest_account="222", client=client, dry_run=True)
     client.place_order.assert_not_called()
+
+def test_skips_symbol_with_no_price():
+    trades = [{"symbol": "AAPL", "action": "BUY", "pct_of_portfolio": 0.05,
+               "confirmed": True, "source": "both"}]
+    orders = calculate_dest_trades(trades, {}, 15000.0, {}, min_trade_value=50)
+    assert orders == []
