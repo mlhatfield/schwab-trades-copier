@@ -26,6 +26,10 @@ def merge_with_history(diffs: list[dict], history: list[dict]) -> list[dict]:
     diff_index = {(t["symbol"], t["action"]): t for t in diffs}
     history_index = {(t["symbol"], t["action"]): t for t in history}
 
+    # Detect duplicate keys that would be silently dropped
+    if len(diff_index) != len(diffs):
+        raise ValueError("diffs contains duplicate (symbol, action) pairs")
+
     for key, trade in diff_index.items():
         if key in history_index:
             result.append({**trade, "confirmed": True, "source": "both"})

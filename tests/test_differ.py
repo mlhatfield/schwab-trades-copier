@@ -49,3 +49,22 @@ def test_merge_includes_history_only_trades():
     goog = next(t for t in result if t["symbol"] == "GOOG")
     assert goog["source"] == "history"
     assert goog["confirmed"] is True
+
+def test_diff_detects_decreased_position():
+    yesterday = {"AAPL": {"shares": 10.0, "market_value": 1500.0, "pct_of_portfolio": 0.10}}
+    today     = {"AAPL": {"shares":  6.0, "market_value":  900.0, "pct_of_portfolio": 0.06}}
+    trades = diff_positions(yesterday, today)
+    aapl = next(t for t in trades if t["symbol"] == "AAPL")
+    assert aapl["action"] == "SELL"
+    assert aapl["pct_of_portfolio"] == 0.06
+
+def test_build_trade_list_integration():
+    yesterday = {"AAPL": {"shares": 10.0, "market_value": 1500.0, "pct_of_portfolio": 0.10}}
+    today     = {"AAPL": {"shares": 15.0, "market_value": 2250.0, "pct_of_portfolio": 0.12},
+                 "GOOG": {"shares":  2.0, "market_value":  600.0, "pct_of_portfolio": 0.04}}
+    history   = [{"symbol": "AAPL", "action": "BUY"}]
+    result = build_trade_list(yesterday, today, history)
+    aapl = next(t for t in result if t["symbol"] == "AAPL")
+    goog = next(t for t in result if t["symbol"] == "GOOG")
+    assert aapl["confirmed"] is True and aapl["source"] == "both"
+    assert goog["confirmed"] is False and goog["source"] == "diff"
