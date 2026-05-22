@@ -8,9 +8,9 @@ from src.config import load_config
 from src.snapshot import save_snapshot, load_snapshot
 from src.differ import build_trade_list
 from src.trader import calculate_dest_trades, execute_trades
-from src.schwab_client import build_client, get_positions, get_transactions, get_prices
+from src.schwab_client import build_client, get_account_hashes, get_positions, get_transactions, get_prices
 
-_REDIRECT_URI = "https://127.0.0.1"
+_REDIRECT_URI = "https://127.0.0.1:8182"
 
 
 def _snapshot_path(cfg: dict) -> str:
@@ -40,10 +40,13 @@ def first_run_setup(cfg: dict) -> None:
         cfg["schwab"]["client_secret"],
         _REDIRECT_URI,
         cfg["schwab"]["token_file"],
+        interactive=False,
     )
     log.info("Auth complete. Taking initial snapshot...")
     client = build_client(cfg)
-    positions = get_positions(client, cfg["accounts"]["source"])
+    hashes = get_account_hashes(client)
+    source_hash = hashes[cfg["accounts"]["source"]]
+    positions = get_positions(client, source_hash)
     path = _snapshot_path(cfg)
     save_snapshot(positions, path)
     log.info(f"Snapshot saved to {path}. Run without --setup tomorrow to start copying.")
@@ -53,18 +56,20 @@ def run(cfg: dict) -> None:
     log = logging.getLogger(__name__)
     client = build_client(cfg)
 
+    hashes = get_account_hashes(client)
+    source_hash = hashes[cfg["accounts"]["source"]]
+    dest_hash = hashes[cfg["accounts"]["dest"]]
+
     snapshot_path = _snapshot_path(cfg)
     yesterday = load_snapshot(snapshot_path)
 
-    source_id = cfg["accounts"]["source"]
-    dest_id = cfg["accounts"]["dest"]
     dry_run = cfg["execution"]["dry_run"]
 
-    log.info(f"Fetching source positions (account {source_id})")
-    today_positions = get_positions(client, source_id)
+    log.info(f"Fetching source positions (account ...{cfg['accounts']['source'][-4:]})")
+    today_positions = get_positions(client, source_hash)
 
     log.info("Fetching transaction history (last 48hr)")
-    history = get_transactions(client, source_id, days=2)
+    history = get_transactions(client, source_hash, days=2)
 
     log.info("Building trade list")
     trades = build_trade_list(yesterday, today_positions, history)
@@ -75,8 +80,8 @@ def run(cfg: dict) -> None:
         save_snapshot(today_positions, snapshot_path)
         return
 
-    log.info(f"Fetching dest positions (account {dest_id})")
-    dest_positions = get_positions(client, dest_id)
+    log.info(f"Fetching dest positions (account ...{cfg['accounts']['dest'][-4:]})")
+    dest_positions = get_positions(client, dest_hash)
     dest_value = sum(p["market_value"] for p in dest_positions.values())
     if dest_value == 0.0:
         log.warning("Dest account has zero market value — no BUY orders will be sized")
@@ -93,7 +98,7 @@ def run(cfg: dict) -> None:
         allocation_tolerance=cfg["execution"]["allocation_tolerance"],
     )
     log.info(f"Placing {len(orders)} orders (dry_run={dry_run})")
-    execute_trades(orders, dest_id, client, dry_run=dry_run)
+    execute_trades(orders, dest_hash, client, dry_run=dry_run)
 
     save_snapshot(today_positions, snapshot_path)
     log.info("Snapshot updated. Done.")

@@ -11,6 +11,13 @@ def build_client(cfg: dict):
     )
 
 
+def get_account_hashes(client) -> dict[str, str]:
+    """Return mapping of accountNumber -> hashValue for all linked accounts."""
+    resp = client.get_account_numbers()
+    resp.raise_for_status()
+    return {entry["accountNumber"]: entry["hashValue"] for entry in resp.json()}
+
+
 def normalize_positions(raw: dict) -> dict:
     acct = raw["securitiesAccount"]
     total = acct["currentBalances"]["liquidationValue"]
